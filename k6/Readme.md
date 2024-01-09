@@ -2,7 +2,7 @@
 
 ## Installation in Fedora/Centos
 
-`sudo dnf install https://dl.k6.io/rpm/repo.rpm`
+`sudo dnf install https://dl.k6.io/rpm/repo.rpm`.
 `sudo dnf install k6`
 
 ## Installation in Kali/Ubuntu
