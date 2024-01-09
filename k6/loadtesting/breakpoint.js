@@ -3,15 +3,11 @@ import { sleep } from "k6";
 export const options = {
   insecureSkipTLSVerify: true,
   noConnectionReuse: true,
+  // Key configurations for breakpoint in this section
+  executor: "ramping-arrival-rate", //Assure load increase if the system slows
   stages: [
-    { duration: "5m", target: 100 },
-    { duration: "10m", target: 100 },
-    { duration: "5m", target: 0 },
+    { duration: "2h", target: 20000 }, // just slowly ramp-up to a HUGE load
   ],
-  thresholds: {
-    http_req_failed: ["rate<0.01"], // http errors should be less than 1%
-    http_req_duration: ["p(95)<200"], // 95% of requests should be below 200ms
-  },
 };
 const API_URL = "https://ssm.bougainvillea.live";
 export default () => {
