@@ -1,4 +1,4 @@
-k6 new
+# k6 new
 
 ## Installation in Fedora/Centos
 
