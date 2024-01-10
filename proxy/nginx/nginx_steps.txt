@@ -1,0 +1,147 @@
+sudo apt update
+sudo apt install nginx
+sudo nano /etc/nginx/sites-available/load-balancer
+
+## Conf File
+use http block for loadbalancer
+
+HTTP {
+	
+}
+# Load balancer server 
+upstream backend {
+    server 192.168.10.11:80;
+    server 192.168.10.12:80;
+}
+
+server {
+    listen 443 ssl #optional http2;
+    server_name your_domain_or_IP;
+	ssl on;
+    ssl_certificate /etc/letsencrypt/live/your_domain_or_IP/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your_domain_or_IP/privkey.pem;
+
+    ### OR
+
+
+    ssl_certificate         /etc/nginx/ssl/example.com/server.crt;
+    ssl_certificate_key     /etc/nginx/ssl/example.com/server.key;
+    ssl_trusted_certificate /etc/nginx/ssl/example.com/ca-certs.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    #ssl_dhparam /etc/ssl/certs/dhparam.pem;
+
+    ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384';
+    ########OR
+    ssl_ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS;
+
+    ssl_session_cache shared:SSL:20m;
+    ssl_session_timeout 10m;
+
+
+    ssl_ecdh_curve secp384r1;
+    ssl_session_timeout 1d;  
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    
+    add_header Strict-Transport-Security "max-age=31536000";
+
+    location / {   
+    	
+    	#if Cache implemented for performance
+    	proxy_cache my_cache;
+        proxy_cache_valid 200 60m;
+        proxy_cache_valid any 10m;
+        # cache implemented Ends
+
+        proxy_pass https://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/load-balancer /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo service nginx restart
+
+### SSL Config
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx
+sudo certbot --nginx -d your_domain_or_IP
+
+
+######### Extra
+
+root@node01:~# vi /etc/nginx/nginx.conf
+# add [log_format] setting into [http] section
+http {
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+        '$status $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for"';
+
+root@node01:~# vi /etc/nginx/sites-available/default
+# add into [server] section
+# specify your local network for [set_real_ip_from]
+server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        set_real_ip_from   10.0.0.0/24;
+        real_ip_header     X-Forwarded-For;
+
+
+
+
+###### Optimized as per hardware
+nano /etc/nginx/nginx.conf
+
+#log buffer or disable log if not required at this point
+
+access_log /var/log/nginx/access.log main buffer=32k;
+access_log off;
+
+
+
+#Gnzip all client resposnse
+
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 5;
+gzip_buffers 16 8k;
+#gzip_http_version 1.1;
+gzip_min_length 10240;
+gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+######OR
+gzip on;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+
+
+# Implement Connection Timeouts
+client_body_timeout 15;
+client_header_timeout 15;
+keepalive_timeout 65;
+send_timeout 15;
+
+# check CPU CORES
+grep processor /proc/cpuinfo | wc -l 
+
+worker_processes 2[cupcores number];
+
+#mulitple accept
+multi_accept on;
+
+#Adjust buffer
+client_body_buffer_size 15K;
+client_header_buffer_size 2k;
+#client_max_body_size 8m;
+large_client_header_buffers 4 4k;
+
+
+ulimit -n 
+
+worker_connections 1024;	
